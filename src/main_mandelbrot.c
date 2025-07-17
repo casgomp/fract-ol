@@ -3,6 +3,7 @@
 #include <mlx.h>
 #include <X11/keysym.h>
 #include <X11/X.h>
+#include <math.h>
 #include "../lib/libft/ft_printf.h"
 
 //too many functions. should group in different source files. Something like:
@@ -13,8 +14,8 @@
 //5. all functions for operations with complex numbers before recursion
 
 //macros should probably also go on an h file
-# define WINDOW_WIDTH 1000
-# define WINDOW_HEIGHT 600
+# define WINDOW_WIDTH 900
+# define WINDOW_HEIGHT 900
 # define MLX_ERROR 1
 # define RED_PIXEL 0xFF0000
 # define GREEN_PIXEL 0x00FF00
@@ -65,6 +66,23 @@ void	img_pix_put(t_img *img, int x, int y, int color)
 	*(int *)pixel = color;
 }
 
+int	ft_fractal_interpolate_color(int color1, int color2, double t)
+{
+	int	r1 = (color1 >> 16) & 0xFF;
+	int	g1 = (color1 >> 8) & 0xFF;
+	int	b1 = color1 & 0xFF;
+
+	int	r2 = (color2 >> 16) & 0xFF;
+	int	g2 = (color2 >> 8) & 0xFF;
+	int	b2 = color2 & 0xFF;
+
+	int	r = (int)(r1 + t * (r2 - r1));
+	int	g = (int)(g1 + t * (g2 - g1));
+	int	b = (int)(b1 + t * (b2 - b1));
+
+	return ((r << 16) | (g << 8) | b);
+}
+
 t_complex	ft_fractal_new_z(t_complex t_z, t_complex t_c)
 {
 	t_complex	t_z_squared;
@@ -85,11 +103,26 @@ double	ft_fractal_absolute_z(t_complex t_z)
 	return (absolute_z);
 }
 
+double	ft_fractal_smooth(int count_iter, t_complex t_z)
+{
+	double	log_zn;
+	double	count_iter_smooth;
+	double	absolute_z;
+
+	absolute_z = ft_fractal_absolute_z(t_z);
+	log_zn = 0.5 * log(absolute_z);
+	count_iter_smooth = (double)count_iter + 1.0 - (log(log_zn) / log(2.0));
+	return (count_iter_smooth);
+}
+
 int	ft_fractal_recursion(t_complex t_z, t_complex t_c, int count_iter)
 {
 	if (ft_fractal_absolute_z(t_z) > 4.0)
-		return (count_iter);
-	if (count_iter >= MAX_ITER)
+	{
+		return (ft_fractal_smooth(count_iter, t_z));
+		//return (count_iter);
+	}
+	if (count_iter == MAX_ITER)
 		return (count_iter);
 	t_z = ft_fractal_new_z(t_z, t_c);	
 	return (ft_fractal_recursion(t_z, t_c, count_iter + 1)); 
@@ -107,17 +140,32 @@ double	ft_fractal_escape(t_complex t_c)
 /*Include parameter for set type (i.e., argv[1]) 
  * because each set type will have a different RE_START and RE_END since they 
  * extend differently accross the complex plane.*/
-int	ft_fractal_color(int x, int y) 
+int	ft_fractal_color(t_complex t_c) 
 {
-	//all this resizing part at the begining i could move to another function
+	double		count_iter_smooth;
+	int			color;
+
+	count_iter_smooth = ft_fractal_escape(t_c);
+	if (count_iter_smooth == (double)MAX_ITER)
+		color = 0x000000;
+	else
+	{
+		double color_value = fmod(count_iter_smooth * 0.1, 1.0);
+		int	color1 = 0x0000FF;
+		int	color2 = 0x00FF00;
+		color = ft_fractal_interpolate_color(color1, color2, color_value);
+	}
+	return (color);
+}
+
+//mandelbrot set region x=-2,1 and y=-1.5,1.5:
+t_complex	ft_fractal_mapping(int x, int y)
+{
 	t_complex	t_start;
 	t_complex	t_end;
 	t_complex	t_dimension;
 	t_complex	t_c;
-	int			count_iter;
-	int			color;
 
-	//mandelbrot set region x=-2,1 and y=-1.5,1.5:
 	t_start.real = -2.0;
 	t_end.real = 1.0;
 	t_start.imaginary = -1.5;
@@ -126,40 +174,15 @@ int	ft_fractal_color(int x, int y)
 	t_dimension.imaginary = t_end.imaginary - t_start.imaginary;
 	t_c.real = t_start.real + ((double)x / WINDOW_WIDTH * t_dimension.real);
 	t_c.imaginary = t_start.imaginary + ((double)y / WINDOW_HEIGHT * t_dimension.imaginary);
-	count_iter = ft_fractal_escape(t_c);
-	//ft_printf("c (%.4f, %.4f) , escapes at count_iter = %i\n", t_c.real, t_c.imaginary, count_iter);
-	//here go instructions for coloring based on count_iter (the escape time algorithm.)
-	//all else (i.e. the resizing part) should go on separate function.
-	if (count_iter == MAX_ITER)
-		color = 0x000000;
-	else if (count_iter > 500)
-		color = 0x00ff00;
-	else if (count_iter > 92)
-		color = 0xff0000;
-	else if (count_iter > 60)
-		color = 0x0000ff;
-	else if (count_iter > 30)
-		color = 0xa65c00;
-	else if (count_iter > 10)
-		color = 0x00ff00;
-	else if (count_iter > 8)
-		color = 0xff0000;
-	else if (count_iter > 6)
-		color = 0xff00ff;
-	else if (count_iter > 4)
-		color = 0xff0000;
-	else if (count_iter > 2)
-		color = 0x0000ff;
-	else
-		color = 0x00ff00;
-	return (color);
+	return (t_c);
 }
 
 void	render_fractal(t_img *img)
 {
-	int	i;
-	int	j;
-	int	color;
+	int			i;
+	int			j;
+	t_complex	t_c;
+	int			color;
 
 	i = 0;
 	while (i < WINDOW_HEIGHT)
@@ -167,18 +190,8 @@ void	render_fractal(t_img *img)
 		j = 0;
 		while (j < WINDOW_WIDTH)
 		{
-			//here call a function x that calls the recursive function y.
-			//Function y should return n = number of iterations when c escapes,
-			//or n = max_iterations if c doesnt escape after max_iterations.
-			//Then function c assigns a color based on y's return, and returns to
-			//this function.
-
-			//Very likely will have to recalibrate origin of the window 
-			//or where pixels are put, because in the minilibx window,
-			//the origin (0,0) is a the top left corner, but the mandelbrot set
-			//has its origin at (-.5, 0). I could do this adjustment in the
-			//ft_fractal_color function, or at the ft_fractal_escape function.
-			color = ft_fractal_color(j, i);
+			t_c = ft_fractal_mapping(j, i);
+			color = ft_fractal_color(t_c);
 			img_pix_put(img, j++, i, color);
 		}
 		i ++;
@@ -217,7 +230,7 @@ int	main(int argc, char **argv)
 	data.mlx_ptr = mlx_init();
 	if (data.mlx_ptr == NULL)
 		return (MLX_ERROR);
-	data.win_ptr = mlx_new_window(data.mlx_ptr, WINDOW_WIDTH, WINDOW_HEIGHT, "My first window!");
+	data.win_ptr = mlx_new_window(data.mlx_ptr, WINDOW_WIDTH, WINDOW_HEIGHT, "fract'ol");
 	if (data.win_ptr == NULL)
 		return (free(data.win_ptr), MLX_ERROR);
 
