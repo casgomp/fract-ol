@@ -23,6 +23,8 @@
 
 # define MAX_ITER 1000
 
+# define MAX_CALCULATIONS_PER_FRAME 10000000
+
 //struct definitions should go in an h file.
 typedef struct	s_img
 {
@@ -38,6 +40,11 @@ typedef struct	s_data
 	void	*mlx_ptr;
 	void	*win_ptr;
 	t_img	img;
+	int		current_pixel_x;
+	int		current_pixel_y;
+	int		render_pass_max_iter;
+	int		pixels_rendered_this_frame;
+	int		is_rendering;
 }	t_data;
 
 typedef struct	s_complex
@@ -115,38 +122,38 @@ double	ft_fractal_smooth(int count_iter, t_complex t_z)
 	return (count_iter_smooth);
 }
 
-int	ft_fractal_recursion(t_complex t_z, t_complex t_c, int count_iter)
+double	ft_fractal_recursion(t_complex t_z, t_complex t_c, int count_iter, t_data *data)
 {
+	data->pixels_rendered_this_frame += 7;
+	if (data->pixels_rendered_this_frame >= MAX_CALCULATIONS_PER_FRAME)
+		return ((double)MAX_ITER);
 	if (ft_fractal_absolute_z(t_z) > 4.0)
-	{
 		return (ft_fractal_smooth(count_iter, t_z));
-		//return (count_iter);
-	}
-	if (count_iter == MAX_ITER)
+	if (count_iter == data->render_pass_max_iter)
 		return (count_iter);
-	t_z = ft_fractal_new_z(t_z, t_c);	
-	return (ft_fractal_recursion(t_z, t_c, count_iter + 1)); 
+	t_z = ft_fractal_new_z(t_z, t_c);
+	return (ft_fractal_recursion(t_z, t_c, count_iter + 1, data));
 }
 
-double	ft_fractal_escape(t_complex t_c)
+double	ft_fractal_escape(t_complex t_c, t_data *data)
 {
 	t_complex	t_z;
 
 	t_z.real = 0;
 	t_z.imaginary = 0;
-	return (ft_fractal_recursion(t_z, t_c, 0));
+	return (ft_fractal_recursion(t_z, t_c, 0, data));
 }
 
 /*Include parameter for set type (i.e., argv[1]) 
  * because each set type will have a different RE_START and RE_END since they 
  * extend differently accross the complex plane.*/
-int	ft_fractal_color(t_complex t_c) 
+int	ft_fractal_color(t_complex t_c, t_data *data) 
 {
 	double		count_iter_smooth;
 	int			color;
 
-	count_iter_smooth = ft_fractal_escape(t_c);
-	if (count_iter_smooth == (double)MAX_ITER)
+	count_iter_smooth = ft_fractal_escape(t_c, data);
+	if (count_iter_smooth == (double)data->render_pass_max_iter)
 		color = 0x000000;
 	else
 	{
@@ -177,33 +184,76 @@ t_complex	ft_fractal_mapping(int x, int y)
 	return (t_c);
 }
 
-void	render_fractal(t_img *img)
+int	render(t_data *data)
 {
-	int			i;
-	int			j;
 	t_complex	t_c;
 	int			color;
 
-	i = 0;
-	while (i < WINDOW_HEIGHT)
-	{
-		j = 0;
-		while (j < WINDOW_WIDTH)
-		{
-			t_c = ft_fractal_mapping(j, i);
-			color = ft_fractal_color(t_c);
-			img_pix_put(img, j++, i, color);
-		}
-		i ++;
-	}
-}
-
-int	render(t_data *data)
-{
 	if (data->win_ptr == NULL)
 		return (1);
-	render_fractal(&data->img);
-	mlx_put_image_to_window(data->mlx_ptr, data->win_ptr, data->img.mlx_img, 0, 0);
+	if (!data->is_rendering)
+		return (0);
+	data->pixels_rendered_this_frame = 0; //Reset FLOP counter for this frame
+	while (data->current_pixel_y < WINDOW_HEIGHT &&
+		data->pixels_rendered_this_frame < MAX_CALCULATIONS_PER_FRAME)
+		{
+			while (data->current_pixel_x < WINDOW_WIDTH &&
+				data->pixels_rendered_this_frame < MAX_CALCULATIONS_PER_FRAME)
+			{
+				t_c = ft_fractal_mapping(data->current_pixel_x, data->current_pixel_y);
+				color = ft_fractal_color(t_c, data);
+				img_pix_put(&data->img, data->current_pixel_x, data->current_pixel_y, color);
+				data->current_pixel_x++;
+			}
+			if (data->current_pixel_x >= WINDOW_WIDTH)
+			{
+				data->current_pixel_x = 0;
+				data->current_pixel_y++;
+			}
+		}
+	if (data->current_pixel_y >= WINDOW_HEIGHT)
+	{
+		mlx_put_image_to_window(data->mlx_ptr, data->win_ptr, data->img.mlx_img, 0, 0);
+		if (data->render_pass_max_iter < MAX_ITER)
+		{
+			data->render_pass_max_iter += 50;
+			if (data->render_pass_max_iter > MAX_ITER)
+				data->render_pass_max_iter = MAX_ITER;
+			data->current_pixel_x = 0;
+			data->current_pixel_y = 0;
+			ft_printf("Render pass complete. Increasing MAX_ITER to %d.\n", data->render_pass_max_iter);
+		}
+		else
+		{
+			data->is_rendering = 0;
+			ft_printf("Rendering complete to MAX_ITER %d.\n", MAX_ITER);
+		}
+	}
+	else
+	{
+	
+	}
+	return (0);
+}
+
+int	handle_destroy_notify(t_data *data)
+{
+	if (data->win_ptr)
+	{
+		mlx_destroy_window(data->mlx_ptr, data->win_ptr);
+		data->win_ptr = NULL;
+	}
+	return (0);
+}
+
+int	handle_mouse_event(int button, int x, int y, t_data *data)
+{
+	// ?????????????????
+	ft_printf("handle_mouse_event(): ????\n");
+	(void)button;
+	(void)x;
+	(void)y;
+	(void)data;
 	return (0);
 }
 
@@ -243,16 +293,18 @@ int	main(int argc, char **argv)
 	//	line_len (if there's no padding) is the number of bytes per row, i.e., 
 	//	image_width * (bpp / 8), and endian depends on the machine (42 machines are LE) 
 	data.img.addr = mlx_get_data_addr(data.img.mlx_img, &data.img.bpp, &data.img.line_len, &data.img.endian);
+	data.current_pixel_x = 0;
+	data.current_pixel_y = 0;
+	data.render_pass_max_iter = 50;
 	//mlx_loop_hook: for always-running logic, like animation or redrawing:
  	mlx_loop_hook(data.mlx_ptr, &render, &data);
 	//mlx_hook: for specific events, like key press, mouse movement, window resize:
 	mlx_hook(data.win_ptr, KeyPress, KeyPressMask, &handle_keypress, &data);
-
+	mlx_hook(data.win_ptr, 17, 0, &handle_destroy_notify, &data);
 	/*mlx_loop: Starts the event main loop. It runs forever (until you manually destroy 
 	 * the window or exit), waiting for user input (keyboard/mouse) or internal events, 
 	 * and dispatches them to your hook functions (like mlx_hook() or mlx_loop_hook()).*/
 	mlx_loop(data.mlx_ptr);
-
 	/*exits the loop when there's no window left or escape key is pressed.*/
 	mlx_destroy_image(data.mlx_ptr, data.img.mlx_img);
 	mlx_destroy_display(data.mlx_ptr);
