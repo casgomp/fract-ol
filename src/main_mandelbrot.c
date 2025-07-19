@@ -25,6 +25,12 @@
 
 # define MAX_CALCULATIONS_PER_FRAME 10000000
 
+#define SCROLL_UP 4
+#define SCROLL_DOWN 5
+
+#define ZOOM_IN_FACTOR 0.8
+#define ZOOM_OUT_FACTOR 1.2
+
 //struct definitions should go in an h file.
 typedef struct	s_img
 {
@@ -45,12 +51,16 @@ typedef struct	s_data
 	int		render_pass_max_iter;
 	int		pixels_rendered_this_frame;
 	int		is_rendering;
+	long double	re_start;
+	long double	re_end;
+	long double	im_start;
+	long double	im_end;
 }	t_data;
 
 typedef struct	s_complex
 {
-	double	real;
-	double	imaginary;
+	long double	real;
+	long double	imaginary;
 }	t_complex;
 
 /*These function prototypes are already in the mlx 
@@ -73,7 +83,7 @@ void	img_pix_put(t_img *img, int x, int y, int color)
 	*(int *)pixel = color;
 }
 
-int	ft_fractal_interpolate_color(int color1, int color2, double t)
+int	ft_fractal_interpolate_color(int color1, int color2, long double t)
 {
 	int	r1 = (color1 >> 16) & 0xFF;
 	int	g1 = (color1 >> 8) & 0xFF;
@@ -102,31 +112,31 @@ t_complex	ft_fractal_new_z(t_complex t_z, t_complex t_c)
 	return (t_z_new);
 }
 
-double	ft_fractal_absolute_z(t_complex t_z)
+long double	ft_fractal_absolute_z(t_complex t_z)
 {
-	double	absolute_z;
+	long double	absolute_z;
 
 	absolute_z = (t_z.real * t_z.real) + (t_z.imaginary * t_z.imaginary);
 	return (absolute_z);
 }
 
-double	ft_fractal_smooth(int count_iter, t_complex t_z)
+long double	ft_fractal_smooth(int count_iter, t_complex t_z)
 {
-	double	log_zn;
-	double	count_iter_smooth;
-	double	absolute_z;
+	long double	log_zn;
+	long double	count_iter_smooth;
+	long double	absolute_z;
 
 	absolute_z = ft_fractal_absolute_z(t_z);
 	log_zn = 0.5 * log(absolute_z);
-	count_iter_smooth = (double)count_iter + 1.0 - (log(log_zn) / log(2.0));
+	count_iter_smooth = (long double)count_iter + 1.0 - (log(log_zn) / log(2.0));
 	return (count_iter_smooth);
 }
 
-double	ft_fractal_recursion(t_complex t_z, t_complex t_c, int count_iter, t_data *data)
+long double	ft_fractal_recursion(t_complex t_z, t_complex t_c, int count_iter, t_data *data)
 {
 	data->pixels_rendered_this_frame += 7;
 	if (data->pixels_rendered_this_frame >= MAX_CALCULATIONS_PER_FRAME)
-		return ((double)MAX_ITER);
+		return ((long double)MAX_ITER);
 	if (ft_fractal_absolute_z(t_z) > 4.0)
 		return (ft_fractal_smooth(count_iter, t_z));
 	if (count_iter == data->render_pass_max_iter)
@@ -135,7 +145,7 @@ double	ft_fractal_recursion(t_complex t_z, t_complex t_c, int count_iter, t_data
 	return (ft_fractal_recursion(t_z, t_c, count_iter + 1, data));
 }
 
-double	ft_fractal_escape(t_complex t_c, t_data *data)
+long double	ft_fractal_escape(t_complex t_c, t_data *data)
 {
 	t_complex	t_z;
 
@@ -149,15 +159,15 @@ double	ft_fractal_escape(t_complex t_c, t_data *data)
  * extend differently accross the complex plane.*/
 int	ft_fractal_color(t_complex t_c, t_data *data) 
 {
-	double		count_iter_smooth;
+	long double		count_iter_smooth;
 	int			color;
 
 	count_iter_smooth = ft_fractal_escape(t_c, data);
-	if (count_iter_smooth == (double)data->render_pass_max_iter)
+	if (count_iter_smooth == (long double)data->render_pass_max_iter)
 		color = 0x000000;
 	else
 	{
-		double color_value = fmod(count_iter_smooth * 0.1, 1.0);
+		long double color_value = fmod(count_iter_smooth * 0.1, 1.0);
 		int	color1 = 0x0000FF;
 		int	color2 = 0x00FF00;
 		color = ft_fractal_interpolate_color(color1, color2, color_value);
@@ -166,21 +176,15 @@ int	ft_fractal_color(t_complex t_c, t_data *data)
 }
 
 //mandelbrot set region x=-2,1 and y=-1.5,1.5:
-t_complex	ft_fractal_mapping(int x, int y)
+t_complex	ft_fractal_mapping(int x, int y, t_data *data)
 {
-	t_complex	t_start;
-	t_complex	t_end;
 	t_complex	t_dimension;
 	t_complex	t_c;
 
-	t_start.real = -2.0;
-	t_end.real = 1.0;
-	t_start.imaginary = -1.5;
-	t_end.imaginary = 1.5;
-	t_dimension.real = t_end.real - t_start.real;
-	t_dimension.imaginary = t_end.imaginary - t_start.imaginary;
-	t_c.real = t_start.real + ((double)x / WINDOW_WIDTH * t_dimension.real);
-	t_c.imaginary = t_start.imaginary + ((double)y / WINDOW_HEIGHT * t_dimension.imaginary);
+	t_dimension.real = data->re_end - data->re_start;
+	t_dimension.imaginary = data->im_end - data->im_start;
+	t_c.real = data->re_start + ((long double)x / WINDOW_WIDTH * t_dimension.real);
+	t_c.imaginary = data->im_end - ((long double)y / WINDOW_HEIGHT * t_dimension.imaginary);
 	return (t_c);
 }
 
@@ -200,7 +204,7 @@ int	render(t_data *data)
 			while (data->current_pixel_x < WINDOW_WIDTH &&
 				data->pixels_rendered_this_frame < MAX_CALCULATIONS_PER_FRAME)
 			{
-				t_c = ft_fractal_mapping(data->current_pixel_x, data->current_pixel_y);
+				t_c = ft_fractal_mapping(data->current_pixel_x, data->current_pixel_y, data);
 				color = ft_fractal_color(t_c, data);
 				img_pix_put(&data->img, data->current_pixel_x, data->current_pixel_y, color);
 				data->current_pixel_x++;
@@ -248,12 +252,24 @@ int	handle_destroy_notify(t_data *data)
 
 int	handle_mouse_event(int button, int x, int y, t_data *data)
 {
-	// ?????????????????
-	ft_printf("handle_mouse_event(): ????\n");
-	(void)button;
-	(void)x;
-	(void)y;
-	(void)data;
+	t_complex	mouse_complex_pos;
+	double		zoom_factor;
+
+	if(button == SCROLL_UP)
+		zoom_factor = ZOOM_IN_FACTOR;
+	else if (button == SCROLL_DOWN)
+		zoom_factor = ZOOM_OUT_FACTOR;
+	else
+		return (0);
+	mouse_complex_pos = ft_fractal_mapping(x, y, data);
+	data->re_start = mouse_complex_pos.real - (mouse_complex_pos.real - data->re_start) * zoom_factor;
+	data->re_end = mouse_complex_pos.real + (data->re_end - mouse_complex_pos.real) * zoom_factor;
+	data->im_start = mouse_complex_pos.imaginary - (mouse_complex_pos.imaginary - data->im_start) * zoom_factor;
+	data->im_end = mouse_complex_pos.imaginary + (data->im_end - mouse_complex_pos.imaginary) * zoom_factor;
+	data->current_pixel_x = 0;
+	data->current_pixel_y = 0;
+	data->render_pass_max_iter = 50;
+	data->is_rendering = 1;
 	return (0);
 }
 
@@ -293,14 +309,20 @@ int	main(int argc, char **argv)
 	//	line_len (if there's no padding) is the number of bytes per row, i.e., 
 	//	image_width * (bpp / 8), and endian depends on the machine (42 machines are LE) 
 	data.img.addr = mlx_get_data_addr(data.img.mlx_img, &data.img.bpp, &data.img.line_len, &data.img.endian);
+	data.re_start = -2.0;
+	data.re_end = 1.0;
+	data.im_start = -1.5;
+	data.im_end = 1.5;
 	data.current_pixel_x = 0;
 	data.current_pixel_y = 0;
 	data.render_pass_max_iter = 50;
+	data.is_rendering = 1;
 	//mlx_loop_hook: for always-running logic, like animation or redrawing:
  	mlx_loop_hook(data.mlx_ptr, &render, &data);
 	//mlx_hook: for specific events, like key press, mouse movement, window resize:
 	mlx_hook(data.win_ptr, KeyPress, KeyPressMask, &handle_keypress, &data);
 	mlx_hook(data.win_ptr, 17, 0, &handle_destroy_notify, &data);
+	mlx_hook(data.win_ptr, ButtonPress, ButtonPressMask, &handle_mouse_event, &data);
 	/*mlx_loop: Starts the event main loop. It runs forever (until you manually destroy 
 	 * the window or exit), waiting for user input (keyboard/mouse) or internal events, 
 	 * and dispatches them to your hook functions (like mlx_hook() or mlx_loop_hook()).*/
