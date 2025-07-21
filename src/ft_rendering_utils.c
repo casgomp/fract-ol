@@ -1,5 +1,35 @@
 #include "../include/fractol.h"
 
+void    ft_generate_palette(t_data *data)
+{
+    int i;
+    int r;
+	int	g;
+	int	b;
+
+    data->palette_size = 512;
+    data->palette = (int *)malloc(sizeof(int) * data->palette_size);
+    if (!data->palette)
+        return ;
+    i = 0;
+	while (i < data->palette_size)
+    {
+        r = (int)(sin(0.1 * i + 0) * 127 + 128);
+        g = (int)(sin(0.1 * i + 2 * M_PI / 3) * 127 + 128);
+        b = (int)(sin(0.1 * i + 4 * M_PI / 3) * 127 + 128);
+        if (r < 0) r = 0; if (r > 255) r = 255;
+        if (g < 0) g = 0; if (g > 255) g = 255;
+        if (b < 0) b = 0; if (b > 255) b = 255;
+        data->palette[i] = create_trgb(0, r, g, b);
+		i ++;
+    }
+}
+
+int create_trgb(int t, int r, int g, int b)
+{
+    return (t << 24 | r << 16 | g << 8 | b);
+}
+
 int	ft_fractal_interpolate_color(int color1, int color2, long double t)
 {
 	int	r1 = (color1 >> 16) & 0xFF;
