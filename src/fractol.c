@@ -6,11 +6,7 @@ int	main(int argc, char **argv)
 	int		pixel_x;
 	int		pixel_y;
 
-	data.re_start = -2.0;
-	data.re_end = 1.0;
-	data.im_start = -1.5;
-	data.im_end = 1.5;
-
+	ft_data_initialize(&data);
 	if (argc < 2)
 		return (ft_printf("Invalid input. Enter an integer: 1 for Mandelbrot set or 2 for Julia set.\n"), -1);
 	if (ft_atoi(argv[1]) == 1)
@@ -32,6 +28,18 @@ int	main(int argc, char **argv)
 	return (0);
 }
 
+void	ft_data_initialize(t_data *data)
+{
+	data->re_start = -2.0;
+	data->re_end = 1.0;
+	data->im_start = -1.5;
+	data->im_end = 1.5;
+	data->current_pixel_x = 0;
+	data->current_pixel_y = 0;
+	data->render_pass_max_iter = 50;
+	data->is_rendering = 1;
+}
+
 int	ft_minilibx_setup(t_data *data)
 {
 	data->mlx_ptr = mlx_init();
@@ -42,15 +50,8 @@ int	ft_minilibx_setup(t_data *data)
 		return (free(data->win_ptr), MLX_ERROR);
 	data->img.mlx_img = mlx_new_image(data->mlx_ptr, WINDOW_WIDTH, WINDOW_HEIGHT);
 	data->img.addr = mlx_get_data_addr(data->img.mlx_img, &data->img.bpp, &data->img.line_len, &data->img.endian);
-	//data->re_start = -2.0;
-	//data->re_end = 1.0;
-	//data->im_start = -1.5;
-	//data->im_end = 1.5;
-	data->current_pixel_x = 0;
-	data->current_pixel_y = 0;
-	data->render_pass_max_iter = 50;
-	data->is_rendering = 1;
- 	mlx_loop_hook(data->mlx_ptr, &render, data);
+	ft_generate_palette(data);
+	mlx_loop_hook(data->mlx_ptr, &render, data);
 	mlx_hook(data->win_ptr, 17, 0, &handle_destroy_notify, data);
 	mlx_hook(data->win_ptr, KeyPress, KeyPressMask, &handle_keypress, data);
 	mlx_hook(data->win_ptr, ButtonPress, ButtonPressMask, &handle_mouse_event, data);
@@ -58,6 +59,8 @@ int	ft_minilibx_setup(t_data *data)
 	mlx_destroy_image(data->mlx_ptr, data->img.mlx_img);
 	mlx_destroy_display(data->mlx_ptr);
 	free(data->mlx_ptr);
+	if (data->palette)
+		free(data->palette);
 	return (0);
 }
 /*Setup hooks (i.e., callbacks: functions to be executed later,

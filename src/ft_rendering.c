@@ -65,23 +65,24 @@ t_complex	ft_fractal_mapping(int x, int y, t_data *data)
 	return (t_c);
 }
 
-/*Include parameter for set type (i.e., argv[1]) 
- * because each set type will have a different RE_START and RE_END since they 
- * extend differently accross the complex plane.*/
 int	ft_fractal_color(t_complex t_c, t_data *data) 
 {
-	long double		count_iter_smooth;
+	long double	count_iter_smooth;
+	long double	scaled_iter;
 	int			color;
+	int			idx1;
+	int			idx2;
 
 	count_iter_smooth = ft_fractal_escape(t_c, data);
 	if (count_iter_smooth == (long double)data->render_pass_max_iter)
 		color = 0x000000;
 	else
 	{
-		long double color_value = fmod(count_iter_smooth * 0.1, 1.0);
-		int	color1 = 0x0000FF;
-		int	color2 = 0x00FF00;
-		color = ft_fractal_interpolate_color(color1, color2, color_value);
+		scaled_iter = count_iter_smooth * 10.0;
+		scaled_iter = fmodl(scaled_iter, (long double)data->palette_size);
+		idx1 = (int)floorl(scaled_iter);
+        idx2 = (idx1 + 1) % data->palette_size;
+		color = ft_fractal_interpolate_color(data->palette[idx1], data->palette[idx2], scaled_iter - (long double)idx1);
 	}
 	return (color);
 }
