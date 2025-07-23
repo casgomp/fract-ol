@@ -7,7 +7,8 @@
 # include <X11/keysym.h>
 # include <X11/X.h>
 # include <math.h>
-# include "../lib/libft/ft_printf.h"
+# include "../lib/libft/include/ft_printf.h"
+# include "../lib/libft/include/ft_string.h"
 
 # define WINDOW_WIDTH 800
 # define WINDOW_HEIGHT 800

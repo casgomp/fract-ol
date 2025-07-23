@@ -17,9 +17,18 @@ void    ft_generate_palette(t_data *data)
         r = (int)(sin(0.1 * i + 0) * 127 + 128);
         g = (int)(sin(0.1 * i + 2 * M_PI / 3) * 127 + 128);
         b = (int)(sin(0.1 * i + 4 * M_PI / 3) * 127 + 128);
-        if (r < 0) r = 0; if (r > 255) r = 255;
-        if (g < 0) g = 0; if (g > 255) g = 255;
-        if (b < 0) b = 0; if (b > 255) b = 255;
+        if (r < 0)
+			r = 0;
+		if (r > 255)
+			r = 255;
+        if (g < 0)
+			g = 0;
+		if (g > 255)
+			g = 255;
+        if (b < 0)
+			b = 0;
+		if (b > 255)
+			b = 255;
         data->palette[i] = create_trgb(0, r, g, b);
 		i ++;
     }
