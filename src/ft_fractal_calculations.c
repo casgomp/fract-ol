@@ -1,3 +1,14 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   ft_fractal_calculations.c                          :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: pecastro <pecastro@student.42berlin.d      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/07/23 13:12:24 by pecastro          #+#    #+#             */
+/*   Updated: 2025/07/24 10:37:11 by pecastro         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 #include "../include/fractol.h"	
 
 long double	ft_fractal_escape(t_complex t_c, t_data *data)
@@ -17,7 +28,8 @@ long double	ft_fractal_escape(t_complex t_c, t_data *data)
 	}
 }
 
-long double	ft_fractal_recursion(t_complex t_z, t_complex t_c, int count_iter, t_data *data)
+long double	ft_fractal_recursion(t_complex t_z, t_complex t_c, 
+				int count_iter, t_data *data)
 {
 	data->pixels_rendered_this_frame += 7;
 	if (data->pixels_rendered_this_frame >= MAX_CALCULATIONS_PER_FRAME)
@@ -38,7 +50,8 @@ long double	ft_fractal_smooth(int count_iter, t_complex t_z)
 
 	absolute_z = ft_fractal_absolute_z(t_z);
 	log_zn = 0.5 * log(absolute_z);
-	count_iter_smooth = (long double)count_iter + 1.0 - (log(log_zn) / log(2.0));
+	count_iter_smooth = (long double)count_iter + 1.0
+		- (log(log_zn) / log(2.0));
 	return (count_iter_smooth);
 }
 

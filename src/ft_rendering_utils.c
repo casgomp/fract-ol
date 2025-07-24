@@ -1,57 +1,73 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   ft_rendering_utils.c                               :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: pecastro <pecastro@student.42berlin.d      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/07/23 13:12:46 by pecastro          #+#    #+#             */
+/*   Updated: 2025/07/24 11:49:36 by pecastro         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 #include "../include/fractol.h"
 
-void    ft_generate_palette(t_data *data)
+void	ft_generate_palette(t_data *data)
 {
-    int i;
-    int r;
+	int	i;
+	int	r;
 	int	g;
 	int	b;
 
-    data->palette_size = 512;
-    data->palette = (int *)malloc(sizeof(int) * data->palette_size);
-    if (!data->palette)
-        return ;
-    i = 0;
+	data->palette_size = 512;
+	data->palette = (int *)malloc(sizeof(int) * data->palette_size);
+	if (!data->palette)
+		return ;
+	i = 0;
 	while (i < data->palette_size)
-    {
-        r = (int)(sin(0.1 * i + 0) * 127 + 128);
-        g = (int)(sin(0.1 * i + 2 * M_PI / 3) * 127 + 128);
-        b = (int)(sin(0.1 * i + 4 * M_PI / 3) * 127 + 128);
-        if (r < 0)
-			r = 0;
-		if (r > 255)
-			r = 255;
-        if (g < 0)
-			g = 0;
-		if (g > 255)
-			g = 255;
-        if (b < 0)
-			b = 0;
-		if (b > 255)
-			b = 255;
-        data->palette[i] = create_trgb(0, r, g, b);
+	{
+		r = rgb_cap((int)(sin(0.1 * i + 0) * 127 + 128));
+		g = rgb_cap((int)(sin(0.1 * i + 2 * M_PI / 3) * 127 + 128));
+		b = rgb_cap((int)(sin(0.1 * i + 4 * M_PI / 3) * 127 + 128));
+		data->palette[i] = (r << 16 | g << 8 | b);
 		i ++;
-    }
+	}
 }
 
-int create_trgb(int t, int r, int g, int b)
+int	rgb_cap(int color)
 {
-    return (t << 24 | r << 16 | g << 8 | b);
+	if (color < 0)
+		return (0);
+	else if (color > 255)
+		return (255);
+	else
+		return (color);
 }
 
 int	ft_fractal_interpolate_color(int color1, int color2, long double t)
 {
-	int	r1 = (color1 >> 16) & 0xFF;
-	int	g1 = (color1 >> 8) & 0xFF;
-	int	b1 = color1 & 0xFF;
+	int	r;
+	int	g;
+	int	b;
 
-	int	r2 = (color2 >> 16) & 0xFF;
-	int	g2 = (color2 >> 8) & 0xFF;
-	int	b2 = color2 & 0xFF;
-
-	int	r = (int)(r1 + t * (r2 - r1));
-	int	g = (int)(g1 + t * (g2 - g1));
-	int	b = (int)(b1 + t * (b2 - b1));
-
+	r = (int)(c_sep(color1, 1) + t * (c_sep(color2, 1) - c_sep(color1, 1)));
+	g = (int)(c_sep(color1, 2) + t * (c_sep(color2, 2) - c_sep(color1, 2)));
+	b = (int)(c_sep(color1, 3) + t * (c_sep(color2, 3) - c_sep(color1, 3)));
 	return ((r << 16) | (g << 8) | b);
+}
+
+int	c_sep(int color, int rgb)
+{
+	int	r;
+	int	g;
+	int	b;
+
+	r = (color >> 16) & 0xFF;
+	g = (color >> 8) & 0xFF;
+	b = color & 0xFF;
+	if (rgb == 1)
+		return (r);
+	else if (rgb == 2)
+		return (g);
+	else
+		return (b);
 }
