@@ -1,5 +1,7 @@
 # fract'ol
 
+<img width="792" height="792" alt="image" src="https://github.com/user-attachments/assets/f3965049-5ad9-46e9-a2f8-dd2285018c3e" />
+
 ### Description:
 
 This project involves creating graphically beautiful fractals using the school's graphical library, the MiniLibx.
