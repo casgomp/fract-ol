@@ -37,3 +37,7 @@ Key things learned from this project:
 - Coloring algorithms
 - Organizing a somewhat complex project
 - Creating (more) efficient Makefiles
+
+### Useful sources:
+
+- A series of articles for setting up the minilibix library, starting with the [basics](https://aurelienbrabant.fr/blog/getting-started-with-the-minilibx).
