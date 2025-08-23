@@ -4,7 +4,7 @@
 
 ### Description:
 
-This project involves creating graphically beautiful fractals using the school's graphical library, the MiniLibx.
+This project involves creating graphically beautiful fractals using 42's graphical library, the MiniLibx.
 
 ### Requirements:
 - Your program must offer the Julia set and the Mandelbrot set.
