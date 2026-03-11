@@ -1,6 +1,8 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -Werror -Iinclude -Ilib/libft/include
-MLX_FLAGS = -lmlx -lX11 -lXext -lm
+CFLAGS = -Wall -Wextra -Werror -Iinclude -Ilib/libft/include -Iminilibx-linux
+MLX_FLAGS = -Lminilibx-linux -lmlx -lX11 -lXext -lm
+MLX_LIB = minilibx-linux/libmlx.a
+
 NAME = fractol
 
 OBJ_DIR = objs
@@ -21,8 +23,11 @@ vpath %.c src lib/libft/src/printf lib/libft/src/string
 
 all: $(NAME)
 
-$(NAME): $(OBJS)
+$(NAME): $(MLX_LIB) $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) $(MLX_FLAGS) -o $(NAME)
+
+$(MLX_LIB):
+	@make -C minilibx-linux
 
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
@@ -33,6 +38,7 @@ $(OBJ_DIR)/%.o: %.c
 
 clean:
 	rm -rf $(OBJ_DIR)
+	rm -f minilibx-linux/libmlx.a
 
 fclean: clean
 	rm -f $(NAME)
